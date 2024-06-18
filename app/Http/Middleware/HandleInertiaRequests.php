@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 use Tighten\Ziggy\Ziggy;
+use App\Models\Cart;
 
 class HandleInertiaRequests extends Middleware
 {
@@ -30,6 +31,15 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
+
+        if ($request->user()) {
+            $cart = $request->user()->cart;
+        } else {
+            // the cart has a seesion_id column
+            $cart = Cart::where('session_id', session()->getId())->first();
+
+        }
+        
         return [
             ...parent::share($request),
             'auth' => [
@@ -39,6 +49,10 @@ class HandleInertiaRequests extends Middleware
                 ...(new Ziggy)->toArray(),
                 'location' => $request->url(),
             ],
+            // sum of the quantity of all items in the cart
+            'cartCount' => $cart ? $cart->items->sum('quantity') : 0,
+
+            // 'cartCount' => $cart ? $cart->items->count() : 0,
         ];
     }
 }

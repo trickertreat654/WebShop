@@ -10,6 +10,8 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use Inertia\Response;
+use App\Models\Cart;
+use Illuminate\Support\Facades\DB;
 
 class AuthenticatedSessionController extends Controller
 {
@@ -29,8 +31,22 @@ class AuthenticatedSessionController extends Controller
      */
     public function store(LoginRequest $request): RedirectResponse
     {
+        $session = session()->getId();
         $request->authenticate();
+        
+        $sessionCart = Cart::where('session_id', $session)->first();
+        $userCart = $request->user()->cart;
 
+        $sessionCart->items->each(fn($item) => $userCart->items()->updateOrCreate([
+            'product_variant_id' => $item->product_variant_id,
+        ], [
+            
+        ])->increment('quantity', $item->quantity)
+     );
+        
+        $sessionCart->items->each->delete();
+        $sessionCart->delete();
+        
         $request->session()->regenerate();
 
         return redirect()->intended(route('dashboard', absolute: false));
