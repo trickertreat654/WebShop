@@ -36,20 +36,25 @@ class AuthenticatedSessionController extends Controller
         
         $sessionCart = Cart::where('session_id', $session)->first();
         $userCart = $request->user()->cart;
-
+        if (! $sessionCart) {
+            return redirect()->intended(route('dashboard', absolute: false));
+        }
         $sessionCart->items->each(fn($item) => $userCart->items()->updateOrCreate([
-            'product_variant_id' => $item->product_variant_id,
+            'product_variant_id' => $item->product_variant_id,            
         ], [
-            
-        ])->increment('quantity', $item->quantity)
-     );
+            'quantity' => $item->quantity,
+
+        ]));
+
+        
+     
         
         $sessionCart->items->each->delete();
         $sessionCart->delete();
         
         $request->session()->regenerate();
 
-        return redirect()->intended(route('dashboard', absolute: false));
+        return redirect(route('dashboard', absolute: false));
     }
 
     /**

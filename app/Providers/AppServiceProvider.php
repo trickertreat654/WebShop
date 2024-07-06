@@ -27,6 +27,9 @@ class AppServiceProvider extends ServiceProvider
         Model::unguard();
         // ungaurd the model
 
+        // Cashier::calculateTaxes();
+        // calculate taxes
+
        
 
     }

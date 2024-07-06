@@ -22,6 +22,13 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+
+        User::factory(1)->create([
+            'name' => 'John Doe',
+            'email' => 'a@a.com',
+            'password' => bcrypt('password'),
+        ]);
+
         Product::factory(4)
         ->hasVariants(5)
         // ->has(Image::factory(3)->sequence(fn(Sequence $sequence) => ['featured' => [$sequence->index === 0]]))

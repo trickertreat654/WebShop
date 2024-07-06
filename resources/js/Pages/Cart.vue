@@ -1,6 +1,6 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import { defineProps, computed } from 'vue';
+import {  computed } from 'vue';
 import { useForm, router } from '@inertiajs/vue3';
 
 
@@ -50,7 +50,7 @@ function decrementQuantity(itemId) {
 
 // Function to handle checkout
 function checkout() {
-  form.post('/checkout', {
+  router.visit(route('checkout'), {
     preserveState: true,
     onSuccess: () => {
       alert('Checkout successful!');
@@ -91,11 +91,12 @@ function checkout() {
       </div>
       <div class="flex justify-end space-x-4 mt-6">
         <span class="text-xl font-semibold">Total: ${{ (total / 100).toFixed(2) }}</span>
-        <button 
+        <!-- <button 
           @click="checkout" 
           class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-500 focus:outline-none">
           Checkout
-        </button>
+        </button> -->
+        <a :href="route('checkout')" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-500 focus:outline-none">Checkout</a>
       </div>
     </div>
     <div v-else class="text-center">

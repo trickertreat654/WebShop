@@ -31,6 +31,16 @@ Route::get('/dashboard', function () {
     return to_route('home');
 })->name('dashboard');
 
+Route::get('/checkout-success', function (Request $request) {
+    $request->validate([
+        'session_id' => ['required'],
+    ]);
+    return Inertia::render('CheckoutSuccess', [
+        'session_id' => $request->session_id,
+    ]);
+})->middleware(['auth'])->name('checkout.success');
+
+
 
 Route::get('product/{product}', function (Product $product) {
 
@@ -127,6 +137,49 @@ Route::get('/cart', function() {
         }),
     ]);
 })->name('cart');
+
+Route::get('/checkout', function() {
+
+    $cart = auth()->user()->cart;
+    if(!$cart) {
+        return redirect()->route('cart');
+    }
+
+    $items = $cart->items;
+    return auth()->user()->allowPromotionCodes()->checkout($items->loadMissing('product','variant')->map(function(CartItem $item)
+     {
+        return 
+        [
+            
+            'price_data' => [
+                'currency' => 'usd',
+                'unit_amount' => $item->product->price * 1,
+                'product_data' => [
+                    'name' => $item->product->name,
+                    'description' => 'Size: ' . $item->variant->size . ', Color: ' . $item->variant->color,
+                    
+                    'metadata' => [
+                        'product_id' => $item->product->id,
+                        'product_variant_id' => $item->product_variant_id,
+                        ]
+                    ],
+                ],
+            'quantity' => $item->quantity,
+        ];
+    })->toArray()
+    ,['customer_update' => [
+                'shipping' => 'auto',
+            ],
+            'shipping_address_collection' => [
+                'allowed_countries' => ['US', 'CA'],
+            ],
+            'metadata' => [
+                'user_id' => auth()->id(),
+                'cart_id' => $cart->id,
+            ],
+    ]
+);
+})->middleware(['auth'])->name('checkout');
 
 
 Route::middleware('auth')->group(function () {
