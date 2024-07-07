@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use App\Models\Cart;
 use App\Models\CartItem;
 
+
 Route::get('/', function () {
 
 
@@ -24,6 +25,7 @@ Route::get('/', function () {
                     'image' => $product->image->path,
                 ];
             }),
+            'canLogin' => auth()->guest(),
         ]);
 })->name('home');
 
@@ -36,10 +38,67 @@ Route::get('/checkout-success', function (Request $request) {
         'session_id' => ['required'],
     ]);
     return Inertia::render('CheckoutSuccess', [
-        'session_id' => $request->session_id,
+        'sessionId' => $request->session_id,
     ]);
 })->middleware(['auth'])->name('checkout.success');
 
+Route::get('orders', function () {
+    $orders = auth()->user()->orders;
+    return Inertia::render('Orders', [
+        'orders' => $orders->map(function ($order) {
+            return [
+                'id' => $order->id,
+                'amount_shipping' => $order->amount_shipping,
+                'amount_discount' => $order->amount_discount,
+                'amount_tax' => $order->amount_tax,
+                'amount_total' => $order->amount_total,
+                'billing_address' => $order->billing_address,
+                'shipping_address' => $order->shipping_address,
+                'created_at' => $order->created_at,
+                'items' => $order->items->map(function ($item) {
+                    return [
+                        'id' => $item->id,
+                        'name' => $item->name,
+                        'description' => $item->description,
+                        'quantity' => $item->quantity,
+                        'price' => $item->price,
+                        'amount_total' => $item->amount_total,
+                    ];
+                }),
+            ];
+        }),
+    ]);
+})->middleware('auth')->name('orders');
+
+Route::get('/order/{orderId}', function ($orderId) {
+    $order = App\Models\Order::find($orderId);
+    $user = auth()->user();
+    if(!$order || ($user && $order->user_id !== $user->id)) {
+        return redirect()->route('home');
+    }
+    return Inertia::render('Order', [
+        'order' => [
+            'id' => $order->id,
+            'amount_shipping' => $order->amount_shipping,
+            'amount_discount' => $order->amount_discount,
+            'amount_tax' => $order->amount_tax,
+            'amount_total' => $order->amount_total,
+            'billing_address' => $order->billing_address,
+            'shipping_address' => $order->shipping_address,
+            'created_at' => $order->created_at,
+            'items' => $order->items->map(function ($item) {
+                return [
+                    'id' => $item->id,
+                    'name' => $item->name,
+                    'description' => $item->description,
+                    'quantity' => $item->quantity,
+                    'price' => $item->price,
+                    'amount_total' => $item->amount_total,
+                ];
+            }),
+        ],
+    ]);
+})->middleware('auth')->name('order.show');
 
 
 Route::get('product/{product}', function (Product $product) {
@@ -87,6 +146,17 @@ Route::patch('cart/{cartItem}/increment', function (CartItem $cartItem) {
     $cartItem->increment('quantity');
     return redirect()->route('cart');
 })->name('cart.increment');
+
+
+Route::get('/preview-email', function () {
+
+    // $order = App\Models\Order::find(4)->get();
+    $cart = App\Models\User::find(2)->cart;
+   
+    return new App\Mail\AbandondedCartReminder($cart);
+});
+
+
 
 Route::post('product/add-to-cart', function (Request $request) {
     $request->validate([
@@ -173,6 +243,8 @@ Route::get('/checkout', function() {
             'shipping_address_collection' => [
                 'allowed_countries' => ['US', 'CA'],
             ],
+            'success_url' => route('checkout.success') . '?session_id={CHECKOUT_SESSION_ID}',
+            'cancel_url' => route('cart'),
             'metadata' => [
                 'user_id' => auth()->id(),
                 'cart_id' => $cart->id,

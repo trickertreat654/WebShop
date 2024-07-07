@@ -12,6 +12,9 @@ use App\Models\OrderItem;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 use App\Models\Cart;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\OrderConfirmation;
+
 
 
 
@@ -97,6 +100,8 @@ class StripeEventListener
                     $order->items()->saveMany($orderItems);
                     $cart->items()->delete();
                     $cart->delete();
+
+                    Mail::to($user)->send(new OrderConfirmation($order));
                 
             }
 

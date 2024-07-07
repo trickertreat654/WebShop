@@ -12,6 +12,7 @@ use Inertia\Inertia;
 use Inertia\Response;
 use App\Models\Cart;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class AuthenticatedSessionController extends Controller
 {
@@ -35,10 +36,15 @@ class AuthenticatedSessionController extends Controller
         $request->authenticate();
         
         $sessionCart = Cart::where('session_id', $session)->first();
-        $userCart = $request->user()->cart;
+        // find or create a cart for the authenticated user
+        $userCart = Cart::firstOrCreate([
+            'user_id' => auth()->id(),
+        ]);
+
         if (! $sessionCart) {
             return redirect()->intended(route('dashboard', absolute: false));
         }
+       
         $sessionCart->items->each(fn($item) => $userCart->items()->updateOrCreate([
             'product_variant_id' => $item->product_variant_id,            
         ], [
